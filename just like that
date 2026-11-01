@@ -1,14 +1,61 @@
 TC ID	Req ID	Stream/Function	Scenario	Priority	Severity	Prerequisites	Test Objective	Test Steps	Expected Result
-AT-FR001-001	FR-001	Requirement Extraction	"Extract requirements from a single paragraph
-"	High	High	User is authenticated and logged into the IDEAS portal. The "Requirements to Polarion" backend service is online.	Verify extraction of a single explicit requirement from structured text	"1. Navigate to the left sidebar and click on ""Solutions"". 
-2. Under ""Available Solutions"", click the ""Requirements to Polarion"" card. 
-3. On the run form, locate the ""Requirements document"" field and click ""Choose File"" to upload the single-requirement test document. 
-4. Type 'DEMO' into the ""Polarion project ID"" field. 
-5. Ensure the ""Dry run / do not write to Polarion"" and ""Review and confirm before uploading to Polarion"" checkboxes are both checked. 
-6. Click the purple ""Run Solution"" button. 
-7. Monitor the ""Pipeline"" widget on the right side of the screen; wait for 'extract_requirements' to turn green (COMPLETED) and 'review_polarion_requirements' to pause as WAITING_FOR_USER. 
-8. Inspect the ""Review generated Polarion requirements"" panel that appears."	The pipeline successfully parses the text without throwing an error. Exactly one requirement candidate is extracted and rendered in the review panel. The extracted text accurately reflects the original requirement intent without data loss.
-AT-FR001-002	FR-001	Requirement Extraction	Extract from a single paragraph	Medium	Medium	User is logged into IDEAS.	Verify extraction of multiple distinct requirements from a single document block	1. Go to Solutions -> Requirements to Polarion. 2. Click "Choose File" under the "Requirements document" heading and upload the multi-requirement test document. 3. Enter 'DEMO' for the "Polarion project ID" and leave the standard Dry Run/Review checkboxes checked. 4. Click "Run Solution". 5. Wait for the Pipeline to reach the interactive review stage (WAITING_FOR_USER). 6. Review the generated candidates in the "Review generated Polarion requirements" panel.	The system correctly identifies and segregates the text block into exactly three distinct requirement candidate items in the UI. No requirements are improperly merged, and no constraints from the source text are omitted.
-AT-FR001-003	FR-001	Requirement Extraction	Extract from an external document	High	High	User is logged into IDEAS.	Verify extraction engine handles informal or conversational stakeholder input	1. Go to Solutions -> Requirements to Polarion. 2. Upload the informal test document into the "Requirements document" field. 3. Fill out the "Polarion project ID" and click "Run Solution". 4. Wait for the Pipeline to pause for user review. 5. Inspect the generated output in the review panel.	The system successfully filters out the conversational filler. A formal requirement candidate is extracted representing the core business logic (e.g., "The system shall send an alert email when a server goes offline.").
-AT-FR001-004	FR-001	Requirement Extraction	Extract from an external document	High	High	User is logged into IDEAS.	Verify system behavior when input text contains no extractable requirements (Negative Test)	1. Go to Solutions -> Requirements to Polarion. 2. Upload the descriptive test document into the "Requirements document" field. 3. Fill out the "Polarion project ID" and click "Run Solution". 4. Monitor the Pipeline execution on the right side of the screen.	The extract_requirements node completes processing without throwing a critical system error or red UI failure banner. Zero requirement candidates are generated. The UI either completes the run with no items to review or gracefully flags that no valid requirements were detected.
-AT-FR001-005	FR-001	Requirement Extraction	Rephrase per INCOSE	High	High	User is logged into IDEAS.	Verify extraction accurately preserves specific quantitative values and parameters	1. Go to Solutions -> Requirements to Polarion. 2. Upload the quantitative test document into the "Requirements document" field. 3. Fill out the "Polarion project ID" and click "Run Solution". 4. Wait for the Pipeline to pause at the interactive review stage. 5. Inspect the text of the generated candidate in the review panel.	The generated requirement candidate explicitly includes the exact quantitative values ("10,000 records per minute" and "3 seconds"). The AI extraction engine does not summarize, round, or abstract away these critical numerical constraints.
+TREAT-FR001-001	FR-001	Requirement Extraction	"Extract requirements from a single paragraph
+"	High	High	1. Active KLA VPN connection is established. 2. Browser (Chrome or Edge) is open. 3. User is authenticated and logged into the IDEAS test instance (test-dt-infra.dev.dias.kla.com). 4. The Requirements to Polarion service is online.	Verify extraction of a single explicit requirement from structured text	"1. Navigate to the left sidebar and click on Solutions.
+2. Under Available Solutions, click the Requirements to Polarion card.
+3. On the run form, locate the Requirements document field and click Choose File to upload the single-requirement .docx test document.
+4. Type 'DEMO' into the Polarion project ID field.
+5. Ensure the Dry run / do not write to Polarion and Review and confirm before uploading to Polarion checkboxes are checked.
+6. Click the purple Run Solution button.
+7. Monitor the Pipeline widget on the right; wait for extract_requirements to show COMPLETED and review_polarion_requirements to show WAITING_FOR_USER.
+8. Inspect the Review generated Polarion requirements panel that appears."	"1. The IDEAS catalog page is displayed.
+2. The run form for Requirements to Polarion opens.
+3. The .docx file is attached and its name appears next to the Choose File button.
+4. 'DEMO' is accepted as input in the text field.
+5. Both checkboxes reflect their selected (checked) state.
+6. The run initiates, and the status changes to running.
+7. The pipeline executes without errors, reaching the interactive review pause state.
+8. Exactly one requirement candidate is extracted, preserving the original intent without data loss, and is displayed for review."
+TREAT-FR001-002	FR-001	Requirement Extraction	Extract from a single paragraph	Medium	Medium	1. Active KLA VPN connection is established. 2. User is logged into the IDEAS test instance via Chrome/Edge.	Verify extraction of multiple distinct requirements from a single document block	"1. Navigate to Solutions -> Requirements to Polarion.
+2. Under Requirements document, click Choose File and upload the multi-requirement .docx test document.
+3. Enter 'DEMO' in the Polarion project ID field.
+4. Keep Dry run / do not write to Polarion and Review and confirm before uploading to Polarion checked.
+5. Click Run Solution.
+6. Wait for the Pipeline to reach the WAITING_FOR_USER state.
+7. Review the generated candidates in the Review generated Polarion requirements panel."	"1. The Requirements to Polarion run form is displayed.
+2. The multi-requirement file is successfully attached.
+3. Project ID is entered.
+4. Checkbox states are maintained.
+5. Run begins and the Pipeline widget updates.
+6. Execution halts at the review stage without system failure.
+7. The system segregates the text block into exactly three distinct requirement candidates in the UI, without merging them or omitting constraints."
+TREAT-FR001-003	FR-001	Requirement Extraction	Extract from an external document	High	High	1. Active KLA VPN connection is established. 2. User is logged into the IDEAS test instance via Chrome/Edge.	Verify extraction engine handles informal or conversational stakeholder input	"1. Navigate to Solutions -> Requirements to Polarion.
+2. Under Requirements document, click Choose File and upload the informal conversational .docx test document.
+3. Enter 'DEMO' in the Polarion project ID field.
+4. Click Run Solution.
+5. Wait for the Pipeline to pause for user review at WAITING_FOR_USER.
+6. Inspect the generated output in the Review generated Polarion requirements panel."	"1. The run form is displayed.
+2. The informal file is successfully attached.
+3. Project ID is entered.
+4. Run begins and Pipeline progresses.
+5. Execution halts at the interactive review stage.
+6. The system filters out conversational filler and extracts a formal requirement candidate representing the core business logic."
+TREAT-FR001-004	FR-001	Requirement Extraction	Extract from an external document	High	High	1. Active KLA VPN connection is established. 2. User is logged into the IDEAS test instance via Chrome/Edge.	Verify system behavior when input text contains no extractable requirements (Negative Test)	"1. Navigate to Solutions -> Requirements to Polarion.
+2. Under Requirements document, click Choose File and upload the descriptive .docx test document (containing no requirements).
+3. Enter 'DEMO' in the Polarion project ID field.
+4. Click Run Solution.
+5. Monitor the Pipeline execution on the right side of the screen."	"1. The run form is displayed.
+2. The descriptive file is successfully attached.
+3. Project ID is entered.
+4. Run begins and Pipeline progresses.
+5. The extract_requirements node completes processing without throwing a critical error. Zero requirement candidates are generated, and the UI gracefully handles the empty result set."
+TREAT-FR001-005	FR-001	Requirement Extraction	Rephrase per INCOSE	High	High	1. Active KLA VPN connection is established. 2. User is logged into the IDEAS test instance via Chrome/Edge.	Verify extraction accurately preserves specific quantitative values and parameters	"1. Navigate to Solutions -> Requirements to Polarion.
+2. Under Requirements document, click Choose File and upload the quantitative .docx test document.
+3. Enter 'DEMO' in the Polarion project ID field.
+4. Click Run Solution.
+5. Wait for the Pipeline to pause at the WAITING_FOR_USER review stage.
+6. Inspect the text of the generated candidate in the Review generated Polarion requirements panel."	"1. The run form is displayed.
+2. The quantitative file is successfully attached.
+3. Project ID is entered.
+4. Run begins and Pipeline progresses.
+5. Execution halts at the review stage.
+6. The generated candidate explicitly includes the exact quantitative values (""10,000 records per minute"" and ""3 seconds""), confirming the AI engine does not summarize or abstract them."
