@@ -119,3 +119,186 @@ if __name__ == "__main__":
     
     # 3. Run the linker
     auto_link_document(input_file, output_file, strings_to_link)
+
+
+
+
+
+
+
+
+import pandas as pd
+import docx
+from docx.shared import Pt, RGBColor, Inches
+from docx.oxml import parse_xml
+from docx.oxml.ns import nsdecls
+import re
+
+def set_cell_background(cell, fill_hex):
+    """Injects XML to color the background of a Word table cell."""
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = parse_xml(f'<w:shd {nsdecls("w")} w:fill="{fill_hex}"/>')
+    tcPr.append(shd)
+
+def parse_numbered_list(text_block):
+    """Splits a block of text by newlines and removes leading numbers."""
+    if pd.isna(text_block):
+        return []
+    lines = str(text_block).split('\n')
+    # Regex to remove "1. ", "2. ", etc.
+    cleaned_lines = [re.sub(r'^\d+\.\s*', '', line.strip()) for line in lines if line.strip()]
+    return cleaned_lines
+
+def build_test_case_doc(excel_path, output_doc_path):
+    # 1. Load the Excel data
+    df = pd.read_excel(excel_path)
+    doc = docx.Document()
+    
+    # Optional: Shrink margins slightly to fit tables better
+    for section in doc.sections:
+        section.left_margin = Inches(0.75)
+        section.right_margin = Inches(0.75)
+
+    # 2. Iterate through each test case in the Excel file
+    for index, row in df.iterrows():
+        tc_id = str(row.get('TC ID', ''))
+        title = str(row.get('Title', ''))
+        user_story = str(row.get('User Story', '')).strip()
+        verifies = str(row.get('Verifies', '')).strip()
+        preconditions = str(row.get('Preconditions', ''))
+        test_data = str(row.get('Test Data', ''))
+        
+        # --- HEADING ---
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(12)
+        p.paragraph_format.space_after = Pt(4)
+        run = p.add_run(f"{tc_id} | {title}")
+        run.bold = True
+        run.font.name = 'Calibri'
+        run.font.size = Pt(11)
+
+        # --- METADATA TABLE ---
+        meta_table = doc.add_table(rows=5, cols=2)
+        meta_table.style = 'Table Grid'
+        meta_table.columns[0].width = Inches(1.5)
+        meta_table.columns[1].width = Inches(5.0)
+
+        # Format User story combined string (e.g. KEDS-US-001.AC1)
+        us_string = f"KEDS-{user_story}.{verifies}" if user_story and verifies else f"{user_story} {verifies}"
+
+        meta_rows_data = [
+            ("Verifies", us_string),
+            ("Sources", ""),
+            ("Feedback status", ""),
+            ("Preconditions", preconditions),
+            ("Test data", test_data)
+        ]
+
+        for i, (label, val) in enumerate(meta_rows_data):
+            cell_left = meta_table.cell(i, 0)
+            cell_right = meta_table.cell(i, 1)
+            
+            # Left column styling (Darker blue/gray)
+            set_cell_background(cell_left, "B4C6E7") 
+            left_run = cell_left.paragraphs[0].add_run(label)
+            left_run.bold = True
+            left_run.font.name = 'Calibri'
+            left_run.font.size = Pt(9.5)
+            
+            # Right column styling (Lighter blue/gray)
+            set_cell_background(cell_right, "D9E1F2")
+            right_run = cell_right.paragraphs[0].add_run(str(val) if not pd.isna(val) else "")
+            right_run.font.name = 'Calibri'
+            right_run.font.size = Pt(9.5)
+            right_run.bold = (i == 0) # Bold the 'Verifies' value only
+
+        doc.add_paragraph() # Spacer
+
+        # --- STEPS TABLE ---
+        actions = parse_numbered_list(row.get('Steps', ''))
+        results = parse_numbered_list(row.get('Expected Results', ''))
+        
+        # Match the highest row count between actions and results
+        num_steps = max(len(actions), len(results))
+        
+        step_table = doc.add_table(rows=num_steps + 1, cols=3)
+        step_table.style = 'Table Grid'
+        step_table.columns[0].width = Inches(0.6)
+        step_table.columns[1].width = Inches(3.0)
+        step_table.columns[2].width = Inches(2.9)
+
+        # Header Row
+        headers = ["Step", "Action", "Expected result"]
+        for i, text in enumerate(headers):
+            cell = step_table.cell(0, i)
+            set_cell_background(cell, "8EA9DB") # Blue header
+            r = cell.paragraphs[0].add_run(text)
+            r.bold = True
+            r.font.name = 'Calibri'
+            r.font.size = Pt(10)
+            r.font.color.rgb = RGBColor(255, 255, 255) # White text
+
+        # Data Rows
+        for i in range(num_steps):
+            action_text = actions[i] if i < len(actions) else ""
+            result_text = results[i] if i < len(results) else ""
+            
+            step_cell = step_table.cell(i + 1, 0)
+            action_cell = step_table.cell(i + 1, 1)
+            result_cell = step_table.cell(i + 1, 2)
+            
+            # Step Number
+            set_cell_background(step_cell, "B4C6E7")
+            r_step = step_cell.paragraphs[0].add_run(str(i + 1))
+            r_step.bold = True
+            r_step.font.name = 'Calibri'
+            
+            # Action Text
+            set_cell_background(action_cell, "D9E1F2")
+            r_action = action_cell.paragraphs[0].add_run(action_text)
+            r_action.font.name = 'Calibri'
+            
+            # Expected Result Text
+            set_cell_background(result_cell, "D9E1F2")
+            r_result = result_cell.paragraphs[0].add_run(result_text)
+            r_result.font.name = 'Calibri'
+
+        doc.add_paragraph() # Spacer
+
+        # --- RESULT TABLE ---
+        res_table = doc.add_table(rows=2, cols=2)
+        res_table.style = 'Table Grid'
+        res_table.columns[0].width = Inches(1.5)
+        res_table.columns[1].width = Inches(5.0)
+
+        # Row 1
+        res_c1 = res_table.cell(0, 0)
+        res_c2 = res_table.cell(0, 1)
+        set_cell_background(res_c1, "8EA9DB")
+        set_cell_background(res_c2, "D9E1F2")
+        r1 = res_c1.paragraphs[0].add_run("Result")
+        r1.bold, r1.font.name, r1.font.color.rgb = True, 'Calibri', RGBColor(255, 255, 255)
+        res_c2.paragraphs[0].add_run("Not run").font.name = 'Calibri'
+
+        # Row 2
+        ev_c1 = res_table.cell(1, 0)
+        ev_c2 = res_table.cell(1, 1)
+        set_cell_background(ev_c1, "B4C6E7")
+        set_cell_background(ev_c2, "D9E1F2")
+        r2 = ev_c1.paragraphs[0].add_run("Actual result /\nevidence / defect")
+        r2.bold, r2.font.name, r2.font.color.rgb = True, 'Calibri', RGBColor(255, 255, 255)
+        
+        # Add spacing between test cases
+        doc.add_paragraph().paragraph_format.space_after = Pt(24)
+
+    # 3. Save the formatted document
+    doc.save(output_doc_path)
+    print(f"Successfully generated formatted test cases at: {output_doc_path}")
+
+if __name__ == "__main__":
+    # Point these to your actual files
+    excel_file = "KEDS_Additional_Test_Cases.xlsx"
+    word_file = "Formatted_Test_Cases_Output.docx"
+    
+    build_test_case_doc(excel_file, word_file)
+
