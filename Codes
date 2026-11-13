@@ -1,0 +1,121 @@
+import docx
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+import random
+
+def add_bookmark(paragraph, bookmark_name):
+    """Injects a Word bookmark XML element into a heading paragraph."""
+    # Generate a unique ID for the bookmark
+    bookmark_id = str(random.randint(10000, 99999))
+    
+    start = OxmlElement('w:bookmarkStart')
+    start.set(qn('w:id'), bookmark_id)
+    start.set(qn('w:name'), bookmark_name)
+    
+    end = OxmlElement('w:bookmarkEnd')
+    end.set(qn('w:id'), bookmark_id)
+    
+    # Append the bookmark to the paragraph's XML
+    paragraph._p.append(start)
+    paragraph._p.append(end)
+
+def insert_internal_hyperlink(paragraph, original_run, search_string, bookmark_name):
+    """Splits a run and injects an internal hyperlink pointing to the bookmark."""
+    text = original_run.text
+    if search_string not in text:
+        return False
+        
+    # Split the text around the first occurrence of the target string
+    parts = text.split(search_string, 1)
+    before_text, after_text = parts[0], parts[1]
+    
+    # 1. Update the original run to only contain the text before the link
+    original_run.text = before_text
+    
+    # 2. Create the internal hyperlink XML element
+    hyperlink = OxmlElement('w:hyperlink')
+    hyperlink.set(qn('w:anchor'), bookmark_name)
+    hyperlink.set(qn('w:history'), '1')
+    
+    # 3. Create a new run for the hyperlink text
+    new_run = OxmlElement('w:r')
+    rPr = OxmlElement('w:rPr')
+    
+    # Apply standard hyperlink styling (blue, underlined)
+    rStyle = OxmlElement('w:rStyle')
+    rStyle.set(qn('w:val'), 'Hyperlink')
+    rPr.append(rStyle)
+    new_run.append(rPr)
+    
+    text_node = OxmlElement('w:t')
+    text_node.text = search_string
+    # Handle spaces at the beginning or end of the text
+    text_node.set(qn('xml:space'), 'preserve') 
+    new_run.append(text_node)
+    hyperlink.append(new_run)
+    
+    # Insert the hyperlink element immediately after the original run
+    original_run._r.addnext(hyperlink)
+    
+    # 4. If there is text after the link, create a new run for it
+    if after_text:
+        after_run = paragraph.add_run(after_text)
+        # Move the new run to be immediately after the hyperlink
+        hyperlink.addnext(after_run._r)
+        
+    return True
+
+def auto_link_document(input_path, output_path, target_strings):
+    doc = docx.Document(input_path)
+    
+    # Clean up strings and generate valid bookmark names (no spaces allowed)
+    bookmark_map = { string: string.replace(" ", "_").replace("-", "_") for string in target_strings }
+    found_headings = set()
+
+    # Pass 1: Find headings matching the target strings and add bookmarks
+    for paragraph in doc.paragraphs:
+        if paragraph.style.name.startswith('Heading'):
+            heading_text = paragraph.text.strip()
+            for string, bookmark_name in bookmark_map.items():
+                if string.lower() == heading_text.lower():
+                    add_bookmark(paragraph, bookmark_name)
+                    found_headings.add(string)
+
+    print(f"Found and bookmarked {len(found_headings)} matching headings.")
+
+    # Pass 2: Search regular paragraphs for the strings and create links
+    links_created = 0
+    for paragraph in doc.paragraphs:
+        # Skip heading paragraphs so we don't link a heading to itself
+        if paragraph.style.name.startswith('Heading'):
+            continue
+            
+        # Iterate over a copy of the runs since we might be adding new ones dynamically
+        runs = list(paragraph.runs)
+        for run in runs:
+            for string in found_headings:
+                if string in run.text:
+                    bookmark_name = bookmark_map[string]
+                    success = insert_internal_hyperlink(paragraph, run, string, bookmark_name)
+                    if success:
+                        links_created += 1
+
+    doc.save(output_path)
+    print(f"Success! Created {links_created} internal links. Saved to {output_path}.")
+
+# --- Execution Example ---
+if __name__ == "__main__":
+    # 1. Define your input and output files
+    input_file = "my_document.docx"
+    output_file = "my_document_linked.docx"
+    
+    # 2. Define the exact list of strings you want to find and link
+    strings_to_link = [
+        "System Architecture",
+        "Security Protocols",
+        "Data Migration Plan"
+
+    ]
+    
+    # 3. Run the linker
+    auto_link_document(input_file, output_file, strings_to_link)
