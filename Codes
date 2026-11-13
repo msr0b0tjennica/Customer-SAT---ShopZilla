@@ -73,5 +73,96 @@ def build_test_case_doc(excel_path, output_doc_path):
             
             # Right column styling (Alternating row backgrounds)
             # D9E1F2 for even rows (0, 2, 4), FFFFFF (White) for odd rows (1, 3)
-            bg_color = "D9E1F2
+            bg_color = "D9E1F2" if i % 2 == 0 else "FFFFFF"
+            set_cell_background(cell_right, bg_color)
+            
+            right_run = cell_right.paragraphs[0].add_run(str(val) if not pd.isna(val) else "")
+            right_run.font.name = 'Calibri'
+            right_run.font.size = Pt(9.5)
+            right_run.bold = (i == 0)
 
+        doc.add_paragraph()
+
+        # --- STEPS TABLE ---
+        actions = parse_numbered_list(row.get('Steps', ''))
+        results = parse_numbered_list(row.get('Expected Results', ''))
+        num_steps = max(len(actions), len(results))
+        
+        step_table = doc.add_table(rows=num_steps + 1, cols=3)
+        step_table.style = 'Table Grid'
+        step_table.columns[0].width = Inches(0.6)
+        step_table.columns[1].width = Inches(3.0)
+        step_table.columns[2].width = Inches(2.9)
+
+        # Header Row
+        headers = ["Step", "Action", "Expected result"]
+        for i, text in enumerate(headers):
+            cell = step_table.cell(0, i)
+            set_cell_background(cell, "8EA9DB") # Solid header
+            r = cell.paragraphs[0].add_run(text)
+            r.bold = True
+            r.font.name = 'Calibri'
+            r.font.size = Pt(10)
+            r.font.color.rgb = RGBColor(255, 255, 255)
+
+        # Data Rows
+        for i in range(num_steps):
+            action_text = actions[i] if i < len(actions) else ""
+            result_text = results[i] if i < len(results) else ""
+            
+            step_cell = step_table.cell(i + 1, 0)
+            action_cell = step_table.cell(i + 1, 1)
+            result_cell = step_table.cell(i + 1, 2)
+            
+            # Step Number (Solid background)
+            set_cell_background(step_cell, "B4C6E7")
+            r_step = step_cell.paragraphs[0].add_run(str(i + 1))
+            r_step.bold = True
+            r_step.font.name = 'Calibri'
+            
+            # Action & Expected Result Texts (Alternating row backgrounds)
+            bg_color = "D9E1F2" if i % 2 == 0 else "FFFFFF"
+            
+            set_cell_background(action_cell, bg_color)
+            r_action = action_cell.paragraphs[0].add_run(action_text)
+            r_action.font.name = 'Calibri'
+            
+            set_cell_background(result_cell, bg_color)
+            r_result = result_cell.paragraphs[0].add_run(result_text)
+            r_result.font.name = 'Calibri'
+
+        doc.add_paragraph()
+
+        # --- RESULT TABLE ---
+        res_table = doc.add_table(rows=2, cols=2)
+        res_table.style = 'Table Grid'
+        res_table.columns[0].width = Inches(1.5)
+        res_table.columns[1].width = Inches(5.0)
+
+        # Row 1
+        res_c1 = res_table.cell(0, 0)
+        res_c2 = res_table.cell(0, 1)
+        set_cell_background(res_c1, "8EA9DB")
+        set_cell_background(res_c2, "D9E1F2") # Matches the first alternating color
+        r1 = res_c1.paragraphs[0].add_run("Result")
+        r1.bold, r1.font.name, r1.font.color.rgb = True, 'Calibri', RGBColor(255, 255, 255)
+        res_c2.paragraphs[0].add_run("Not run").font.name = 'Calibri'
+
+        # Row 2
+        ev_c1 = res_table.cell(1, 0)
+        ev_c2 = res_table.cell(1, 1)
+        set_cell_background(ev_c1, "B4C6E7")
+        set_cell_background(ev_c2, "FFFFFF") # Alternates to white
+        r2 = ev_c1.paragraphs[0].add_run("Actual result /\nevidence / defect")
+        r2.bold, r2.font.name, r2.font.color.rgb = True, 'Calibri', RGBColor(255, 255, 255)
+        
+        # Add spacing between test cases
+        doc.add_paragraph().paragraph_format.space_after = Pt(24)
+
+    doc.save(output_doc_path)
+    print(f"Successfully generated formatted test cases at: {output_doc_path}")
+
+if __name__ == "__main__":
+    excel_file = "KEDS_Additional_Test_Cases.xlsx"
+    word_file = "Formatted_Test_Cases_Output.docx"
+    build_test_case_doc(excel_file, word_file)
